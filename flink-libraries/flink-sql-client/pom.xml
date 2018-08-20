@@ -162,6 +162,7 @@ under the License.
 										<include>org/apache/calcite/**</include>
 										<include>org/apache/flink/calcite/shaded/**</include>
 										<include>org/apache/flink/table/**</include>
+										<include>org/apache/flink/cep/**</include>
 										<include>org.codehaus.commons.compiler.properties</include>
 										<include>org/codehaus/janino/**</include>
 										<include>org/codehaus/commons/**</include>

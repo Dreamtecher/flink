@@ -31,6 +31,7 @@ import org.apache.calcite.sql.`type`.SqlTypeName._
 import org.apache.calcite.sql.fun.SqlStdOperatorTable._
 import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy
 import org.apache.flink.cep.pattern.Pattern
+import org.apache.flink.cep.pattern.conditions.NotCondition
 import org.apache.flink.cep.{CEP, PatternStream}
 import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.streaming.api.windowing.time.Time
@@ -237,23 +238,30 @@ class DataStreamMatch(
 
           case PATTERN_QUANTIFIER =>
             val name = call.operands.get(0).asInstanceOf[RexLiteral]
-            val newPattern = translatePattern(name, currentPattern, patternNames)
+            var newPattern = translatePattern(name, currentPattern, patternNames)
+            val isGreedy = !call.operands.get(3).asInstanceOf[RexLiteral].getValue().asInstanceOf[Boolean]
 
             val startNum = call.operands.get(1).asInstanceOf[RexLiteral]
               .getValue3.asInstanceOf[JBigDecimal].intValue()
             val endNum = call.operands.get(2).asInstanceOf[RexLiteral]
               .getValue3.asInstanceOf[JBigDecimal].intValue()
 
-            if (startNum == 0 && endNum == -1) {        // zero or more
-              newPattern.oneOrMore().optional().consecutive()
+            newPattern = if (startNum == 0 && endNum == -1) {        // zero or more
+              newPattern.oneOrMore().optional().consecutive().until(new NotCondition[Row](newPattern.getCondition))
             } else if (startNum == 1 && endNum == -1) { // one or more
-              newPattern.oneOrMore().consecutive()
+              newPattern.oneOrMore().consecutive().until(new NotCondition[Row](newPattern.getCondition))
             } else if (startNum == 0 && endNum == 1) {  // optional
               newPattern.optional()
             } else if (endNum != -1) {                  // times
               newPattern.times(startNum, endNum).consecutive()
             } else {                                    // times or more
               newPattern.timesOrMore(startNum).consecutive()
+            }
+
+            if (isGreedy){
+              newPattern.greedy()
+            } else {
+              newPattern
             }
 
           case PATTERN_ALTER =>

@@ -23,6 +23,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.cep.pattern.conditions.IterativeCondition;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.Table;
@@ -36,6 +37,7 @@ import org.apache.flink.types.Row;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -164,4 +166,139 @@ public class JavaSqlITCase extends AbstractTestBase {
 
 		StreamITCase.compareWithList(expected);
 	}
+
+	@Test
+	public void test() throws Exception {
+		MatchRecognizeCondition$45 condition = new MatchRecognizeCondition$45();
+		condition.filter(Row.of("ACME", 4L, 13, 1), new IterativeCondition.Context() {
+			@Override
+			public Iterable getEventsForPattern(String name) throws Exception {
+				return Collections.singletonList(Row.of("ACME", 5L, 10, 1));
+			}
+		});
+	}
+
+
+	public class MatchRecognizeCondition$45 extends org.apache.flink.cep.pattern.conditions.IterativeCondition {
+
+		@Override
+		public boolean filter(
+			Object _in1, org.apache.flink.cep.pattern.conditions.IterativeCondition.Context ctx)
+			throws Exception {
+
+			org.apache.flink.types.Row in1 = (org.apache.flink.types.Row) _in1;
+
+
+
+			boolean isNull$26 = (java.lang.Integer) in1.getField(2) == null;
+			int result$25;
+			if (isNull$26) {
+				result$25 = -1;
+			}
+			else {
+				result$25 = (java.lang.Integer) in1.getField(2);
+			}
+
+			int visitedEventNumber$31 = 0;
+			int eventIndex$30;
+			java.lang.Integer result$28 = -1;
+			boolean isNull$29 = true;
+			do {
+
+				java.util.List patternEvents$27 = new java.util.ArrayList();
+
+				for (Object event$32 : ctx
+					.getEventsForPattern("DOWN")) {
+					patternEvents$27.add(event$32);
+				}
+
+				eventIndex$30 = patternEvents$27.size() - (1 - visitedEventNumber$31);
+				if (eventIndex$30 >= 0) {
+					result$28 = (java.lang.Integer) ((org.apache.flink.types.Row) patternEvents$27.get(eventIndex$30))
+						.getField(2);
+					isNull$29 = false;
+					break;
+				}
+
+				visitedEventNumber$31 += patternEvents$27.size();
+				patternEvents$27.clear();
+
+			} while (false);
+
+			boolean isNull$34 = isNull$26 || isNull$29;
+			boolean result$33;
+			if (isNull$34) {
+				result$33 = false;
+			}
+			else {
+				result$33 = result$25 < result$28;
+			}
+
+
+			boolean result$43 = true;
+			boolean isNull$44 = false;
+			if (!isNull$34 && result$33) {
+				// left expr is true, skip right expr
+			} else {
+
+				int visitedEventNumber$39 = 0;
+				int eventIndex$38;
+				java.lang.Integer result$36 = -1;
+				boolean isNull$37 = true;
+				do {
+
+					java.util.List patternEvents$35 = new java.util.ArrayList();
+
+					for (Object event$40 : ctx
+						.getEventsForPattern("DOWN")) {
+						patternEvents$35.add(event$40);
+					}
+
+					eventIndex$38 = patternEvents$35.size() - (1 - visitedEventNumber$39);
+					if (eventIndex$38 >= 0) {
+						result$36 = (java.lang.Integer) ((org.apache.flink.types.Row) patternEvents$35.get(eventIndex$38))
+							.getField(2);
+						isNull$37 = false;
+						break;
+					}
+
+					visitedEventNumber$39 += patternEvents$35.size();
+					patternEvents$35.clear();
+
+				} while (false);
+
+				boolean result$41 = isNull$37;
+				boolean isNull$42 = false;
+
+				if (!isNull$34 && !isNull$42) {
+					result$43 = result$33 || result$41;
+					isNull$44 = false;
+				}
+				else if (!isNull$34 && result$33 && isNull$42) {
+					result$43 = true;
+					isNull$44 = false;
+				}
+				else if (!isNull$34 && !result$33 && isNull$42) {
+					result$43 = false;
+					isNull$44 = true;
+				}
+				else if (isNull$34 && !isNull$42 && result$41) {
+					result$43 = true;
+					isNull$44 = false;
+				}
+				else if (isNull$34 && !isNull$42 && !result$41) {
+					result$43 = false;
+					isNull$44 = true;
+				}
+				else {
+					result$43 = false;
+					isNull$44 = true;
+				}
+			}
+
+			return result$43;
+
+		}
+	}
+
 }

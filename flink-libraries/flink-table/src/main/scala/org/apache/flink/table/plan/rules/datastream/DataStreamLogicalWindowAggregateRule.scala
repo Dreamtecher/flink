@@ -25,9 +25,10 @@ import org.apache.calcite.rex._
 import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.flink.table.api.scala.{Session, Slide, Tumble}
 import org.apache.flink.table.api.{TableException, ValidationException, Window}
-import org.apache.flink.table.calcite.FlinkTypeFactory
+import org.apache.flink.table.calcite.{FlinkTypeFactory, RelTimeIndicatorConverter}
 import org.apache.flink.table.expressions.{Literal, ResolvedFieldReference, WindowReference}
 import org.apache.flink.table.plan.rules.common.LogicalWindowAggregateRule
+import org.apache.flink.table.plan.schema.TimeIndicatorRelDataType
 import org.apache.flink.table.typeutils.TimeIntervalTypeInfo
 import org.apache.flink.table.validate.BasicOperatorTable
 
@@ -56,10 +57,17 @@ class DataStreamLogicalWindowAggregateRule
       rexBuilder: RexBuilder,
       windowExpression: RexCall): RexNode = {
 
-    rexBuilder.makeLiteral(
+    val zero = rexBuilder.makeLiteral(
       0L,
       rexBuilder.getTypeFactory.createSqlType(SqlTypeName.TIMESTAMP),
       true)
+
+    windowExpression.`type` match {
+      case x : TimeIndicatorRelDataType => rexBuilder.makeAbstractCast(windowExpression.`type`, zero)
+      case _ => zero
+
+    }
+
   }
 
   override private[table] def translateWindowExpression(

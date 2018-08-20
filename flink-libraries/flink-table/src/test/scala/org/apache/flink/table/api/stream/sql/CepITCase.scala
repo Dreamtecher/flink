@@ -317,7 +317,6 @@ class CepITCase extends StreamingWithStateTestBase {
     StreamITCase.clear
 
     val data = new mutable.MutableList[(String, Long, Int, Int)]
-    data.+=(("ACME", 1L, 12, 1))
     data.+=(("ACME", 2L, 17, 2))
     data.+=(("ACME", 3L, 13, 4))
     data.+=(("ACME", 4L, 11, 3))
@@ -325,6 +324,7 @@ class CepITCase extends StreamingWithStateTestBase {
     data.+=(("ACME", 6L, 24, 4))
     data.+=(("ACME", 7L, 25, 3))
     data.+=(("ACME", 8L, 19, 8))
+    data.+=(("ACME", 9L, 20, 8))
 
     val t = env.fromCollection(data).toTable(tEnv).as('symbol, 'tstamp, 'price, 'tax)
     tEnv.registerTable("Ticker", t)
@@ -335,14 +335,14 @@ class CepITCase extends StreamingWithStateTestBase {
         |FROM Ticker
         |MATCH_RECOGNIZE (
         |  MEASURES
-        |    STRT.tstamp AS start_tstamp,
-        |    LAST(DOWN.tstamp) AS bottom_tstamp,
-        |    LAST(UP.tstamp) AS end_tstamp
+        |    FIRST(DOWN.tstamp) AS top_tstamp,
+        |    LAST(DOWN.tstamp) AS bottom_tstamp
         |  ONE ROW PER MATCH
-        |  PATTERN (STRT DOWN+ UP+)
+        |  AFTER MATCH SKIP PAST LAST ROW
+        |  PATTERN (DOWN{2,} LAST)
         |  DEFINE
-        |    DOWN AS DOWN.price < PREV(DOWN.price),
-        |    UP AS UP.price > PREV(UP.price) AND UP.tax > LAST(DOWN.tax)
+        |    DOWN AS DOWN.price < PREV(DOWN.price) or PREV(DOWN.price) IS NULL,
+        |    LAST AS true
         |) AS T
         |""".stripMargin
 
@@ -350,7 +350,7 @@ class CepITCase extends StreamingWithStateTestBase {
     result.addSink(new StreamITCase.StringSink[Row])
     env.execute()
 
-    val expected = List("2,4,5", "2,4,6", "3,4,5", "3,4,6")
+    val expected = List("2,4", "7,8")
     assertEquals(expected.sorted, StreamITCase.testResults.sorted)
   }
 
